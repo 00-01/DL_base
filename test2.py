@@ -18,7 +18,7 @@ from tensorflow.python.keras.callbacks import EarlyStopping, TensorBoard
 from tensorflow.python.keras.utils import losses_utils
 
 from helper.eval_function import log, draw_CM, draw_ROC_AUC
-from helper.gpu_memmory import set_gpu_memmory
+from helper.gpu_memory import set_gpu_memmory
 from helper.model import con, res, res1, res2
 
 # load tensorboard

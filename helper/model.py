@@ -1,6 +1,14 @@
 from keras.layers import Activation, Add, BatchNormalization, Conv2D, Dropout
 
 
+def make_inc():
+    val = [0]
+    def inc():
+        val[0] += 1
+        return val[0]
+    return inc
+
+
 def res1(tensor, filter):
     x = Conv2D(filter, (3, 3), padding='same')(tensor)
     x = BatchNormalization()(x)
@@ -20,10 +28,10 @@ def res1(tensor, filter):
 
 
 def res2(tensor, filter):
-    a = Conv2D(filter, (3, 3), strides=2, padding='same')(tensor)
-    a = BatchNormalization()(a)
-    a = Activation('relu')(a)
-    a = Dropout(.25)(a)
+    y = Conv2D(filter, (3, 3), strides=2, padding='same')(tensor)
+    y = BatchNormalization()(y)
+    y = Activation('relu')(y)
+    y = Dropout(.25)(y)
 
     x = Conv2D(filter, (3, 3), strides=2, padding='same')(tensor)
     x = BatchNormalization()(x)
@@ -33,7 +41,7 @@ def res2(tensor, filter):
     x = Conv2D(filter, (3, 3), padding='same')(x)
     x = BatchNormalization()(x)
 
-    x = Add()([a, x])
+    x = Add()([y, x])
 
     x = BatchNormalization()(x)
     x = Activation('relu')(x)
@@ -43,10 +51,8 @@ def res2(tensor, filter):
 
 
 def res(filter, size, stride, padding, activation, dropout, name, tensor):
-    a = Conv2D(filter, size, strides=stride, padding=padding, name=f"{name}_C2_skip")(tensor)
-    a = BatchNormalization(name=f"{name}_BN_skip")(a)
-    a = Activation(activation, name=f"{name}_ACT_skip")(a)
-    a = Dropout(dropout, name=f"{name}_DO_skip")(a)
+    k = Conv2D(filter, size, strides=stride, padding=padding, name=f"{name}_C2_skip")(tensor)
+    k = BatchNormalization(name=f"{name}_BN_skip")(k)
 
     x = Conv2D(filter, size, strides=stride, padding=padding, name=f"{name}_C2")(tensor)
     x = BatchNormalization(name=f"{name}_0_BN")(x)
@@ -56,9 +62,8 @@ def res(filter, size, stride, padding, activation, dropout, name, tensor):
     x = Conv2D(filter, size, padding='same', name=f"{name}_1_C2")(x)
     x = BatchNormalization(name=f"{name}_1_BN")(x)
 
-    x = Add(name=f"{name}_ADD")([a, x])
+    a = Add(name=f"{name}_ADD")([k, x])
 
-    x = BatchNormalization(name=f"{name}_2_BN")(x)
     x = Activation(activation, name=f"{name}_2_ACT")(x)
     x = Dropout(dropout, name=f"{name}_2_DO")(x)
 
@@ -77,3 +82,5 @@ def mobilenet_ssd():
 
 
     return x
+
+
