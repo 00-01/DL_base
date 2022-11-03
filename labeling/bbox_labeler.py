@@ -18,18 +18,18 @@ from PIL import Image, ImageTk
 
 
 DEBUG = 1
+AUTO_RUN = 0
 BG = 2
 SAVE_IMG = 1
-AUTO_RUN = 0
+SAVE_PIXEL_LABEL = 1
 # DRAW_CNT = 1
 MAKE_DENOISE_LABEL = 1
+CONVERT_BBOX = 1
 
 ## -------------------------------------------------------------------------------- RUN
-
 IDX, bbox_list, BBOX_CNT = 0, [], 0
 h, w = 80, 80
 SIZE = 12
-# SIZE = 11
 re_size = (h*SIZE, w*SIZE)
 
 s1, s2 = 400, 400
@@ -40,13 +40,13 @@ s1_mn, s1_mx, s2_mn, s2_mx = s1//4, s1, s2//5, s2-s2//5
 # X1, X2, Y1, Y2 = 103, 348, 104, 309
 X1, X2, Y1, Y2 = 103, 354, 104, 312
 
-error = 239
+ERROR = 0
 cnt_thresh = 1
 j = 0
 new_label = 0
 
 BG_LIST = []
-BG_LENGTH = 32
+BG_LENGTH = 40
 
 COLORS = ['red', 'yellow', 'orange', 'blue', 'pink', 'cyan', 'green']
 # initialize mouse state
@@ -65,12 +65,14 @@ new_img = None
 resized_image1, resized_image2 = np.zeros(re_size, dtype=np.uint8), np.zeros(re_size, dtype=np.uint8)
 
 df = pd.DataFrame()
-save_dir = f"out"
+df1 = pd.DataFrame()
+save_dir = f"OUT"
 save_csv_path = f"{save_dir}/output.csv"
 data_dir = f"/media/z/0/MVPC10/DATA/v1.1/RAW/03"
 
 ## -------------------------------------------------------------------------------- DOT
-DOT = 1
+DOT = 0
+
 # dot_csv = f"../dot2.csv"
 # dot_df = pd.read_csv(dot_csv)
 # dot_list = []
@@ -93,8 +95,57 @@ print(dot_list)
 #     write.writerow(['x', 'y'])
 #     write.writerows(dot_list)
 
-## -------------------------------------------------------------------------------- IMAGE FUNCTION
+## -------------------------------------------------------------------------------- PIXEL LABEL
+pixel_thresh = 24
 
+
+def real_list(li):
+    C = [[16, 16, 17, 17, 18, 19, 19, 20, 20, 21, 22, 22, 23, 23, 24, 25, 25, 26, 26, 27, 28, 28, 29, 29, 30, 31, 31, 32, 32, 33, 34, 34, 35, 35, 36, 37, 37, 38, 38, 39, 40, 40, 41, 41, 42, 43, 43, 44, 44, 45, 46, 46, 47, 47, 48, 49, 49, 50, 50, 51, 52, 52, 53, 53, 54, 55, 55, 56, 56, 57, 58, 58, 59, 59, 60, 61, 61, 62, 62, 63, 64,],
+         [19, 19, 20, 21, 21, 22, 23, 24, 25, 25, 26, 27, 28, 29, 29, 30, 31, 32, 33, 33, 34, 34, 35, 36, 36, 37, 38, 39, 40, 40, 41, 42, 43, 44, 44, 45, 46, 47, 48, 48, 49, 49, 50, 51, 51, 52, 53, 54, 55, 55, 56, 57, 58, 59, 59, 60, 61, 62, 63, 63, 64, 64, 65, 66, 66, 67, 68, 69, 70, 70, 71, 72, 73, 74, 74, 75, 76, 77, 78, 78, 79,]]
+    real_list = []
+    for i in li:
+        x1 = C[0][i[0]]
+        y1 = C[1][i[1]]
+        x2 = C[0][i[2]]
+        y2 = C[1][i[3]]
+        real_list.append([x1, y1, x2, y2])
+    return real_list
+
+
+def list_sort(arr):
+    padded_list = [None]*80
+    for i in arr:
+        try:
+            if i[1] > 0:
+                if padded_list[i[1]] == None:
+                    padded_list[i[1]] = [i]
+                else:
+                    padded_list[i[1]].append(i)
+        except Exception as E:
+            pass
+    sorted_list = []
+    for i in padded_list:
+        if i != None:
+            if len(i) == 1:
+                sorted_list.append(i[0])
+            else:
+                for j in i:
+                    sorted_list.append(j)
+    return sorted_list
+
+
+def pixel_label_mkr(img, bbox_label, thresh):
+    # bbox_label1 = real_list(bbox_label)
+    sorted_list = list_sort(bbox_label)
+    pixel_label = np.zeros((w, h), dtype=np.uint8)
+    for i in sorted_list:
+        pixel_label[i[1]:i[3], i[0]:i[2]] = (img[i[1]:i[3], i[0]:i[2]] > thresh)*1
+    if SAVE_PIXEL_LABEL == 1:
+        save_img_path = f"../{save_dir}/PIXEL_LABEL/{df.iloc[IDX,0]}.png"
+        cv2.imwrite(save_img_path, pixel_label)
+    return pixel_label, bbox_label
+
+## -------------------------------------------------------------------------------- IMAGE FUNCTION
 def convert_to_format():
     global df
     df['count'] = df['count'].fillna(0)
@@ -119,20 +170,7 @@ def drop_err(csv):
 
 def histogramer(img):
     im = img.flatten()
-    # counts, bins = np.histogram(im, range=(0,255))
-    # plot histogram centered on values 0..255
-    # plt.bar(bins[:-1]-0.5, counts, width=1, edgecolor='none')
-    # plt.bar(bins[:-1]-0.5, counts, width=1, edgecolor='none')
-    # plt.xlim([-0.5, 255.5])
     plt.hist(im, bins=range(img.min(), img.max(), 1), histtype='bar', edgecolor='yellow', color='green')
-
-    # n, bins, patches = plt.hist(x=im, bins='auto', color='#0504aa', alpha=0.7)
-    # plt.grid(axis='both', alpha=0.5)
-    # plt.xlabel('Value')
-    # plt.ylabel('Frequency')
-    # Set a clean upper y-axis limit.
-    # maxfreq = n.max()
-    # plt.ylim(ymax=np.ceil(maxfreq/10)*10 if maxfreq%10 else maxfreq+10)
     plt.show()
 
 
@@ -150,10 +188,11 @@ def histogramer(img):
 
 
 def bg_filter(target):
+    BG_8 = BG_LIST[8:]
     bg = np.zeros([h, w], dtype=int)
-    for IDX in BG_LIST:
-        bg += IDX
-    bg //= len(BG_LIST)
+    for bg_arr in BG_8:
+        bg += bg_arr
+    bg //= len(BG_8)
 
     img = target-bg
 
@@ -177,27 +216,27 @@ def bg_filter(target):
 
 
 def bg_mkr(img):
-    global BG_LIST, bbox_list
+    global BG_LIST, bbox_list, ERROR
     error1 = len(img[img > 237])
     error2 = len(img[img < 1])
-    if error1 > 512:
+    if error1 > 512 or error2 > 256:
         log(f"{IDX}: white-{error1}, black-{error2}")
         bbox_list = [0]
-        # bbox_list.append([0,0,0,0])
+        ERROR = 1
         insert_to_df()
         bg = np.zeros([h, w], dtype=int)
         return 0, bg
     else:
         # log(f"{IDX}: white-{error1}, black-{error2}")
-        BG_LIST.insert(0, img)
-        if len(BG_LIST) > BG_LENGTH:  BG_LIST.pop(-1)
+        BG_LIST.append(img)
+        if len(BG_LIST) > BG_LENGTH:  BG_LIST.pop(0)
         else:  pass
         bg = bg_filter(img)
         return 1, bg
 
 
 def open_new_img():
-    global base_name, df, image1
+    global base_name, df, image1, image2
 
     image1 = cv2.imread(rgb, 1)[:, :, ::-1]
     image2 = cv2.imread(ir, 0)
@@ -210,8 +249,11 @@ def open_new_img():
             base_name = os.path.basename(ir)
             save_img_path = f"{save_dir}/{base_name}"
             cv2.imwrite(save_img_path, bg)
-        crop_image(image1, 16, 38, 40, side=-1)
-        crop_image(image2, 3.2, 7.6, 8, side=1)
+        # crop_image(image1, 16, 38, 40, side=-1)
+        # crop_image(image2, 3.2, 7.6, 8, side=1)
+        resize_image(image1, side=-1)
+        resize_image(image2, side=1)
+
         return num
 
     except TypeError as TE:
@@ -219,17 +261,21 @@ def open_new_img():
 
 
 def crop_image(img, a, b, R, side):
+    global cropped_image
+
     cropped_image = img
     H, W = img.shape[0], img.shape[1]
     X, Y = H//2, W
 
-    if side == 1:
+    if side == 1 or side == 2:
         for x in range(W):
             for y in range(H):
                 if (((X-x)**2)/a**2)+(((Y-y)**2)/b**2) > R**2:
                     cropped_image[y, x] = 0
         cropped_image = cropped_image[:, W//5:W-W//5]
         cropped_image = cropped_image[H//4:, :]
+        if side == 2:
+            return cropped_image
     elif side == -1:
         cropped_image = cropped_image[X1:X2, Y1:Y2]
 
@@ -239,8 +285,7 @@ def crop_image(img, a, b, R, side):
 def resize_image(img, side):
     global resized_image1, resized_image2
 
-    interpolation = cv2.INTER_NEAREST  ## CUBIC LINEAR AREA
-    resized_image = cv2.resize(img, (re_size), interpolation=interpolation)
+    resized_image = cv2.resize(img, re_size, interpolation=cv2.INTER_NEAREST)  ## INTER_NEAREST / CUBIC / LINEAR / AREA
 
     if side == -1:
         resized_image1 = resized_image.copy()
@@ -253,34 +298,60 @@ def resize_image(img, side):
         param2 = IDX
     draw_txt(resized_image, param2, side)
 
+
 def draw_txt(img, label, side):
     global new_cnt_img
-
-    if side < 0:  x, y = img.shape[0]-a1, b1
-    elif side > 0:  x, y = a2, b2
 
     if DOT == 1:
         for l in dot_list:
             img = cv2.circle(img, center=(l[1]*SIZE, l[0]*SIZE), radius=1, color=(127, 0, 0), thickness=1, lineType=1)
 
-    new_cnt_img = cv2.putText(img, str(label), org=(x, y), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=3, color=(255, 0, 255), thickness=5, lineType=1)
+    if len(bbox_list) > 0:
+        if bbox_list[0] == -1 or bbox_list[0] == 0 or bbox_list[0] == [0, 0, 0, 0]:
+            pplcnt = 0
+        else:
+            pplcnt = label
+    else:
+        pplcnt = 0
+
+    if side < 0:
+        x, y = img.shape[0]-a1, b1
+        pplcnt = pplcnt
+    elif side > 0:
+        x, y = a2, b2
+        pplcnt = IDX
+    new_cnt_img = cv2.putText(img, str(pplcnt), org=(x, y), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=3, color=(255, 0, 255), thickness=5, lineType=1)
 
     draw_rec(new_cnt_img, side)
 
-def draw_rec(img, side=1):
+
+def draw_rec(img, side=0):
+    global bbox_list
+
     new_img = img
     if len(bbox_list) > 0:
-        if bbox_list[0] == -1 or bbox_list[0] == 0 or bbox_list[0] == [0,0,0,0]:
+        if bbox_list[0] == -1 or bbox_list[0] == 0 or bbox_list[0] == [0, 0, 0, 0]:
             pass
         else:
-            for l in bbox_list:
-                try:
-                    new_img = cv2.rectangle(new_img, (l[0]*SIZE, l[1]*SIZE), (l[2]*SIZE, l[3]*SIZE), color = (255, 0, 0), thickness = 1, lineType = 1)
-                except Exception as e:
-                    trace_back = traceback.format_exc()
-                    print(f'[!!!] {e}{chr(10)}{trace_back}')
-                    pass
+            if LABEL_TYPE == "pixel":
+                pixel_label, bbox_label = pixel_label_mkr(image2, bbox_list, pixel_thresh)
+                for l in bbox_label:
+                    try:
+                        new_img = cv2.rectangle(new_img, (l[0]*SIZE, l[1]*SIZE), (l[2]*SIZE, l[3]*SIZE), color=(255, 0, 0), thickness=1, lineType=1)
+                    except Exception as E:
+                        print(f'[!!!] {E}{chr(10)}{traceback.format_exc()}')
+                        pass
+                if side > 0:
+                    bbox_list = bbox_label
+                    pixel_label = pixel_label*255
+                    pixel_label = cv2.resize(pixel_label, re_size, interpolation=cv2.INTER_NEAREST)
+
+                    alpha = 0.5
+                    new_img = cv2.addWeighted(new_img, alpha, pixel_label, 1-alpha, 0)
+    else:
+        pass
     show_image(new_img, side)
+
 
 def show_image(img, side):
     global image
@@ -294,43 +365,41 @@ def show_image(img, side):
             RIGHT_IMG.image = image
 
 ## -------------------------------------------------------------------------------- EVENT FUNCTION
-
 def log(info):
     if DEBUG == 1:
         print(info)
 
-
 def clear():
     count_text.set(0)
     index.delete(0, END)
-
 
 def change_count(cnt):
     global new_label
     new_label = count_text.get()+cnt
     count_text.set(new_label)
 
-
 def get_mouse_xy(e):
     x, y = e.x, e.y
     log(f"{x}, {y}")
     return x, y
 
-
 def insert_to_df():
-    global bbox_list
-    bbox_len = len(bbox_list)
-    if bbox_len == 0:
-        # bbox_list = []
-        bbox_list.append([0,0,0,0])
-    elif bbox_len > 1:
-        if bbox_list[0] == [0,0,0,0] or bbox_list[0] == 0 or bbox_list[0] == -1:
-            bbox_list.pop(0)
-    json_loc = json.dumps(bbox_list)
-    df.iloc[IDX, 1] = json_loc
-    # df.iloc[IDX, 2] = BBOX_CNT
-    # df.iloc[IDX, 2] = df.iloc[IDX, 2].astype(int)
-
+    global bbox_list, ERROR, df1
+    if ERROR == 0:
+        bbox_len = len(bbox_list)
+        if bbox_len == 0:
+            # bbox_list = []
+            bbox_list = [[0, 0, 0, 0]]
+        elif bbox_len > 1:
+            if bbox_list[0] == [0, 0, 0, 0] or bbox_list[0] == 0 or bbox_list[0] == -1:
+                bbox_list.pop(0)
+        json_loc = json.dumps(bbox_list)
+        df.iloc[IDX, 1] = json_loc
+            # new_row = {'path': [df.iloc[IDX, 0]], 'label': [json_loc]}
+            # df2 = pd.DataFrame(new_row)
+            # df1 = pd.concat([df1,df2], ignore_index=True)
+            # df1.reset_index()
+    ERROR = 0
 
 def read_data(n):
     global IDX, ir, rgb, data, bbox_list, BBOX_CNT
@@ -338,18 +407,12 @@ def read_data(n):
     IDX += n
     data = df.iloc[IDX, 0]
     try:
-        # print(df.iloc[IDX, 1])
         bbox_list = json.loads(df.iloc[IDX, 1])
-        # print(bbox_list)
     except Exception as E:
         bbox_list = []
         log(f"[!!] {E}: {IDX}")
         traceback.print_exc()
         pass
-        # log(f"{TE}: {IDX}")
-        # traceback.print_exc()
-    # BBOX_CNT = len(bbox_list)
-    # if bbox_list[0] == -1:  change(1)
     try:
         ir = glob(f"{data_dir}/**/{data}.png")[0]
         rgb = glob(f"{data_dir}/**/{data}.jpg")[0]
@@ -358,7 +421,6 @@ def read_data(n):
         traceback.print_exc()
 
     return IDX
-
 
 def change(n):
     IDX = read_data(n)
@@ -371,43 +433,40 @@ def change(n):
             index.insert(0, IDX)
         else:
             index.insert(0, f"{IDX}: ERROR!")
-    # except FileNotFoundError as FE:
-    #     log(f"{FE}: {IDX}")
-    #     traceback.print_exc()
-    # except IndexError as IE:
-    #     log(f"{IE}: {IDX}, FINISHED")
-    #     traceback.print_exc()
-    #     IDX -= n
-    # except TypeError as TE:
-    #     log(f"{TE}: {IDX}")
-    #     traceback.print_exc()
     except Exception as E:
         log(f"[!!] {E}: {IDX}")
         traceback.print_exc()
-        # trace_back = traceback.format_exc()
-        # print(f'{E}{chr(10)}{trace_back}')
-        # pass
 
     if AUTO_RUN == 0:
         img = resized_image2.copy()
         draw_txt(img, IDX, side=1)
 
 ## -------------------------------------------------------------------------------- EVENT
-
-def open_folder():
+def select_directoru():
     global data_dir
-    data_dir = filedialog.askdirectory()
-    data_path.delete(0, END)
+    if DEBUG == 0:
+        data_dir = filedialog.askdirectory()
+        data_path.delete(0, END)
     data_path.insert(0, data_dir)
 
-def open_csv():
+def select_csv():
     global df, data_dir
     file = filedialog.askopenfile()
-    win.title(f"{file.name}")
+    root.title(f"{file.name}")
     df = pd.read_csv(file)
     df.sort_values(by=df.keys()[0], inplace=True, ascending=True)
     data_dir = data_path.get()
     read_data(0)
+
+def select_label(e):
+    global LABEL_TYPE
+    LABEL_TYPE = selected_label.get()
+    if LABEL_TYPE == "bbox":
+        print(f'{LABEL_TYPE}')
+    elif LABEL_TYPE == "pixel":
+        print(f'{LABEL_TYPE}')
+    elif LABEL_TYPE == "count":
+        print(f'{LABEL_TYPE}')
 
 def clone_bbox(e):
     global bbox_list
@@ -423,11 +482,16 @@ def delete_bbox(e):
     f1 = 0
     x, y = round(x/SIZE), round(y/SIZE)
     for idx, i in enumerate(bbox_list):
-        if i[0] < x < i [2] and i[1] < y < i[3]:
+        if i[0] < x < i[2] and i[1] < y < i[3]:
             bbox_list.pop(idx)
             f1 = 1
             break
-    if f1 == 0:  bbox_list.pop(-1)
+    try:
+        if f1 == 0:  bbox_list.pop(-1)
+    except Exception as E:
+        bbox_list.append([0, 0, 0, 0])
+        print(f'{E}{chr(10)}{traceback.format_exc()}')
+        pass
 
     img1 = resized_image1.copy()
     draw_txt(img1, len(bbox_list), side=-1)
@@ -440,8 +504,11 @@ def draw_bbox(e):
     if STATE['click'] == 0:
         STATE['x'], STATE['y'] = e.x, e.y
     else:
-        x1, x2 = round(min(STATE['x'], e.x) / SIZE), round(max(STATE['x'], e.x) / SIZE)
-        y1, y2 = round(min(STATE['y'], e.y) / SIZE), round(max(STATE['y'], e.y) / SIZE)
+        x1, x2 = round(min(STATE['x'], e.x)/SIZE), round(max(STATE['x'], e.x)/SIZE)
+        y1, y2 = round(min(STATE['y'], e.y)/SIZE), round(max(STATE['y'], e.y)/SIZE)
+        for i, j  in enumerate(bbox_list):
+            if j == [0, 0, 0, 0]:
+                bbox_list.pop(i)
         bbox_list.append([x1, y1, x2, y2])
         # bboxIdList.append(bboxId)
         # bboxId = None
@@ -472,11 +539,12 @@ def show_mouse(e):
                                             width=1, outline=COLORS[len(bbox_list)%len(COLORS)])
 
 def save_img():
-    cv2.imwrite(f'./{data}_{IDX}.png', cropped_image2)
+    cv2.imwrite(f'./{data}_{IDX}.png', image2)
     messagebox.showinfo("Information", "img saved succesfully")
 
 def save():
     df.to_csv(f"label_{IDX}.csv", index=False)
+    # df1.to_csv(f"new_label_{IDX}.csv", index=False)
     messagebox.showinfo("Information", "saved succesfully")
 
 def move(e):
@@ -499,7 +567,7 @@ def prev(e):
 
 def close(e):
     df.to_csv(f"backup.csv", index=False)
-    win.destroy()
+    root.destroy()
 
 ## -------------------------------------------------------------------------------- IMAGE SHIFT
 
@@ -514,6 +582,7 @@ d1: X2 +
 l1: Y1 -
 r1: Y2 +
 '''
+
 def shift_image():
     global cropped_image1, resized_image1
     # img = cv2.imread(rgb, 1)[:, :, ::-1]
@@ -524,7 +593,7 @@ def shift_image():
 
     img = img[X1:X2, Y1:Y2]
 
-    resized_image = cv2.resize(img, (960,960), interpolation=cv2.INTER_NEAREST)
+    resized_image = cv2.resize(img, (960, 960), interpolation=cv2.INTER_NEAREST)
     resized_image1 = resized_image.copy()
     cropped_image1 = img.copy()
 
@@ -597,74 +666,122 @@ def right1(e):
 #     lasx, lasy = e.x, e.y
 
 ## -------------------------------------------------------------------------------- WINDOW
+# class ResizingCanvas(Canvas):
+#     def __init__(s, parent, **kwargs):
+#         Canvas.__init__(s, parent, **kwargs)
+#         s.bind("<Configure>", s.on_resize)
+#         s.height = s.winfo_reqheight()
+#         s.width = s.winfo_reqwidth()
+#
+#     def on_resize(s, event):
+#         # determine the ratio of old width/height to new width/height
+#         wscale = float(event.width)/s.width
+#         hscale = float(event.height)/s.height
+#         s.width = event.width
+#         s.height = event.height
+#         # resize the canvas
+#         s.config(width=s.width, height=s.height)
+#         # rescale all the objects tagged with the "all" tag
+#         s.scale("all", 0, 0, wscale, hscale)
 
-win = Tk()
-win.title(f"labeler")
-win.geometry('1924x1200')
-# win.geometry('1900x1000')
+
+# def main():
+    # root = Tk()
+    # root_frame = Frame(root)
+    # root_frame.pack(fill=BOTH, expand=YES)
+    # root_canvas = ResizingCanvas(root_frame, width=850, height=400, bg="red", highlightthickness=0)
+    # root_canvas.pack(fill=BOTH, expand=YES)
+    #
+    # # add some widgets to the canvas
+    # root_canvas.create_line(0, 0, 200, 100)
+    # root_canvas.create_line(0, 100, 200, 0, fill="red", dash=(4, 4))
+    # root_canvas.create_rectangle(50, 25, 150, 75, fill="blue")
+    #
+    # # tag all of the drawn widgets
+    # root_canvas.addtag_all("all")
+    # # root.mainloop()
+
+fg_color = '#ffffff'
+bg_color = '#313131'
+LABEL_TYPE = 'bbox'
+
+root = Tk()
+root.title(f"labeler")
+root.rowconfigure(0, weight=1)
+root.columnconfigure(0, weight=1)
+root.configure(bg=bg_color)
 
 ## -------------------------------------------------------------------------------- GRID
-
 count_text = StringVar()
 count_text.set(0)
 
-## -------------------------------- 0,0
+## ---------------------------------------------------------------- 0,0
 image1_text = StringVar()
 image1_text.set('')
-label0 = Label(win, textvariable=image1_text)
+label0 = Label(root, textvariable=image1_text, fg=fg_color, bg=bg_color)
 label0.grid(row=0, column=0)
-## -------------------------------- 0,1
+
+## ---------------------------------------------------------------- 0,1
 image2_text = StringVar()
 image2_text.set('')
-label1 = Label(win, textvariable=image2_text)
+label1 = Label(root, textvariable=image2_text, fg=fg_color, bg=bg_color)
 label1.grid(row=0, column=1)
 
-## -------------------------------- 1,0
-LEFT_IMG = Label(win)
+## ---------------------------------------------------------------- 1,0
+LEFT_IMG = Label(root, bg=bg_color)
 LEFT_IMG.grid(row=1, column=0)
-## -------------------------------- 1,1
-RIGHT_IMG = Canvas(win, width=re_size[0], height=re_size[1], cursor='tcross', bg='white')
+
+## ---------------------------------------------------------------- 1,1
+RIGHT_IMG = Canvas(root, width=re_size[0], height=re_size[1], cursor='tcross', bg=bg_color)
 RIGHT_IMG.grid(row=1, column=1)
-RIGHT_IMG.bind("<Button 1>", draw_bbox)
-RIGHT_IMG.bind('<Button 2>', clone_bbox)
-RIGHT_IMG.bind('<Button 3>', delete_bbox)
-RIGHT_IMG.bind("<Motion>", show_mouse)
 
-## -------------------------------- 2,0
-index = Entry(win, width=10, justify='center', borderwidth=3, bg='yellow')
-index.grid(row=2, column=0)
+## ---------------------------------------------------------------- 2,0
+index_frame = Frame(root, width=0, height=0, bg=bg_color)
+index_frame.grid(row=2, column=0)
 
-## -------------------------------- 2,1
-select_frame = Frame(win, width=0, height=0, bg='white')
+index_label = Label(index_frame, text='DATA INDEX :', fg=fg_color, bg=bg_color)
+index_label.grid(row=0, column=0, padx=8)
+
+index = Entry(index_frame, width=10, justify='center', borderwidth=3, bg='yellow')
+index.grid(row=0, column=1, padx=8)
+
+## ---------------------------------------------------------------- 2,1
+select_frame = Frame(root, width=0, height=0, pady=16, bg=bg_color)
 select_frame.grid(row=2, column=1)
 
-open_folder_button = Button(select_frame, text="select folder", command=open_folder)
-open_folder_button.grid(row=0, column=1)
+select_directory_button = Button(select_frame, text="select DIRECTORY", command=select_directoru)
+select_directory_button.grid(row=0, column=0, padx=8)
 
-open_csv_button = Button(select_frame, text="select csv_file", command=open_csv)
-open_csv_button.grid(row=0, column=2)
+select_csv_button = Button(select_frame, text="select CSV", command=select_csv)
+select_csv_button.grid(row=0, column=1, padx=8)
 
-## -------------------------------- 3.0
-data_path_frame = Frame(win, width=0, height=0, bg='white')
+selected_label = StringVar()
+selected_label.set("pixel")
+labels = ["pixel", "bbox", "count", ]
+select_label_drop = OptionMenu(select_frame, selected_label, *labels, command=select_label)
+select_label_drop.grid(row=0, column=2, padx=8)
+
+## ---------------------------------------------------------------- 3.0
+data_path_frame = Frame(root, width=0, height=0, bg=bg_color)
 data_path_frame.grid(row=3, column=0)
 
-data_0 = Label(data_path_frame, text='DATA PATH: ')
-data_0.grid(row=0, column=0)
+data_0 = Label(data_path_frame, text='DATA PATH :', fg=fg_color, bg=bg_color)
+data_0.grid(row=0, column=0, padx=8)
 
 data_path = Entry(data_path_frame, width=64, justify='center', borderwidth=3, bg='white')
-data_path.grid(row=0, column=1)
+data_path.grid(row=0, column=1, padx=8)
 
-## -------------------------------- 3,1
-save_frame = Frame(win, width=0, height=0, bg='white')
+## ---------------------------------------------------------------- 3,1
+save_frame = Frame(root, width=0, height=0, pady=16, bg=bg_color)
 save_frame.grid(row=3, column=1)
 
 save_img = Button(save_frame, text="save_img", bg='green', fg='purple', padx=10, pady=10, command=save_img)
-save_img.grid(row=0, column=1)
+save_img.grid(row=0, column=1, padx=8)
 
 save = Button(save_frame, text="save_CSV", bg='red', fg='blue', padx=10, pady=10, command=save)
-save.grid(row=0, column=2)
+save.grid(row=0, column=2, padx=8)
 
-## -------------------------------- 4,0
+## ---------------------------------------------------------------- 4,0
 key_guide_string = "LEFT ARROW: previous\n" \
                    "RIGHT ARROW: next\n" \
                    "LABEL: right click\n" \
@@ -673,35 +790,41 @@ key_guide_string = "LEFT ARROW: previous\n" \
                    "GOTO: write image # on yellow box and press enter"
 key_guide_text = StringVar()
 key_guide_text.set(key_guide_string)
-key_guide = Label(win, textvariable=key_guide_text)
+key_guide = Label(root, textvariable=key_guide_text, fg=fg_color, bg=bg_color)
 key_guide.grid(row=4, column=0)
 
 ## -------------------------------------------------------------------------------- BIND
+root.bind('<Return>', move)
 
-win.bind('<Return>', move)
+root.bind('<Right>', next)
+root.bind('<Left>', prev)
 
-win.bind('<Right>', next)
-win.bind('<Left>', prev)
+root.bind('<Escape>', close)
 
-win.bind('<Escape>', close)
+if LABEL_TYPE == 'bbox':
+    RIGHT_IMG.bind("<Button 1>", draw_bbox)
+elif LABEL_TYPE == 'pixel':
+    RIGHT_IMG.bind("<Button 1>", draw_bbox)
 
-# win.bind('<Button 1>', draw)
-# win.bind('<Button 2>', clone)
-# win.bind('<Button 3>', erase)
+RIGHT_IMG.bind('<Button 2>', clone_bbox)
+RIGHT_IMG.bind('<Button 3>', delete_bbox)
+RIGHT_IMG.bind("<Motion>", show_mouse)
 
-win.bind('<Control-Up>', up)
-win.bind('<Control-Down>', down)
-win.bind('<Control-Right>', right)
-win.bind('<Control-Left>', left)
+root.bind('<Control-Up>', up)
+root.bind('<Control-Down>', down)
+root.bind('<Control-Right>', right)
+root.bind('<Control-Left>', left)
 
-win.bind('<Shift-Up>', up1)
-win.bind('<Shift-Down>', down1)
-win.bind('<Shift-Right>', right1)
-win.bind('<Shift-Left>', left1)
+root.bind('<Shift-Up>', up1)
+root.bind('<Shift-Down>', down1)
+root.bind('<Shift-Right>', right1)
+root.bind('<Shift-Left>', left1)
 
-win.bind('<Control-Shift-Button 2>', loop)
+root.bind('<Control-Shift-Button 2>', loop)
 
-## --------------------------------------------------------------------------------
+## -------------------------------------------------------------------------------- START
+root.mainloop()
 
-win.mainloop()
 
+# if __name__ == "__main__":
+#     main()

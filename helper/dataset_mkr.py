@@ -37,6 +37,38 @@ def v2_1_data_mkr(df, z_value):
     return df1
 
 
+def v2_2_data_mkr(df, z_value):
+    cnt0 = 0
+    path = []
+    label = []
+    for i in range(len(df.index)):
+        bbox = json.loads(df.iloc[i, 1])
+        lbl = len(bbox)
+        if lbl == 1:
+            if 0 not in bbox:
+                if [0, 0, 0, 0] in bbox:
+                    ## REMOVE DATA IMBALANCE
+                    cnt0 += 1
+                    if cnt0%z_value == 0:
+                        label.append(0)
+                        path.append(df.iloc[i, 0])
+                        cnt0 = 0
+                else:
+                    label.append(lbl)
+                    path.append(df.iloc[i, 0])
+        elif lbl == 0:
+            pass
+        else:
+            label.append(lbl)
+            path.append(df.iloc[i, 0])
+    path = np.array(path)
+    label = np.array(label)
+
+    df1 = pd.DataFrame(list(zip(path, label)), columns=['path', 'label'])
+
+    return df1
+
+
 def df_to_tensor(df, path):
     data = []
     label = []
