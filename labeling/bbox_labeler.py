@@ -20,7 +20,7 @@ from PIL import Image, ImageTk
 DEBUG = 1
 AUTO_RUN = 0
 BG = 2
-SAVE_IMG = 1
+SAVE_IMG = 0
 SAVE_PIXEL_LABEL = 1
 # DRAW_CNT = 1
 MAKE_DENOISE_LABEL = 1
@@ -72,6 +72,9 @@ data_dir = f"/media/z/0/MVPC10/DATA/v1.1/RAW/03"
 
 ## -------------------------------------------------------------------------------- DOT
 DOT = 0
+PIXEL = 1
+DILATE = 1
+BBOX = 1
 
 # dot_csv = f"../dot2.csv"
 # dot_df = pd.read_csv(dot_csv)
@@ -96,7 +99,7 @@ print(dot_list)
 #     write.writerows(dot_list)
 
 ## -------------------------------------------------------------------------------- PIXEL LABEL
-pixel_thresh = 24
+pixel_thresh = 15
 
 
 def real_list(li):
@@ -134,12 +137,39 @@ def list_sort(arr):
     return sorted_list
 
 
-def pixel_label_mkr(img, bbox_label, thresh):
+def pixel_label_mkr(img, bbox_label, thresh, cls):
     # bbox_label1 = real_list(bbox_label)
     sorted_list = list_sort(bbox_label)
     pixel_label = np.zeros((w, h), dtype=np.uint8)
     for i in sorted_list:
-        pixel_label[i[1]:i[3], i[0]:i[2]] = (img[i[1]:i[3], i[0]:i[2]] > thresh)*1
+        pixel_label[i[1]:i[3], i[0]:i[2]] = (img[i[1]:i[3], i[0]:i[2]] > thresh)*cls
+        # print(f"start:{chr(10)}")
+        # flg0, flg1 = 0, 0
+        # flg0_li, flg1_li = [], []
+        # dilated_label = pixel_label
+        filled_label = np.zeros((i[3]-i[1], i[2]-i[0]), dtype=np.uint8)
+        for idx0, val0 in enumerate(pixel_label[i[1]:i[3], i[0]:i[2]]):
+            # print(f"val: {val0}")
+            # if 1 in val0:
+            #     # print(f"{idx0}, {val0}")
+            for idx1, val1 in enumerate(val0):
+                filled_label[idx0, idx1] = val1
+        for l in filled_label:
+            pass
+
+
+        pixel_label[i[1]:i[3], i[0]:i[2]] = filled_label
+
+        # print(f"filled:{filled_label}")
+                # print(idx0, idx1)
+                    # if flg0 == 1:
+            #         if val1 == 1:
+            #             flg0_li.append([idx0,idx1])
+            #             flg0 = 1
+                    # print(f"{idx1}, {val1}")
+        # print(f"start:{chr(10)}")
+            # if pix == 1:
+            # if pixel_label[i[1]]
     if SAVE_PIXEL_LABEL == 1:
         save_img_path = f"../{save_dir}/PIXEL_LABEL/{df.iloc[IDX,0]}.png"
         cv2.imwrite(save_img_path, pixel_label)
@@ -333,8 +363,8 @@ def draw_rec(img, side=0):
         if bbox_list[0] == -1 or bbox_list[0] == 0 or bbox_list[0] == [0, 0, 0, 0]:
             pass
         else:
-            if LABEL_TYPE == "pixel":
-                pixel_label, bbox_label = pixel_label_mkr(image2, bbox_list, pixel_thresh)
+            if LABEL_TYPE == "pixel" or PIXEL == 1:
+                pixel_label, bbox_label = pixel_label_mkr(image2, bbox_list, pixel_thresh, 1)
                 for l in bbox_label:
                     try:
                         new_img = cv2.rectangle(new_img, (l[0]*SIZE, l[1]*SIZE), (l[2]*SIZE, l[3]*SIZE), color=(255, 0, 0), thickness=1, lineType=1)
@@ -345,7 +375,10 @@ def draw_rec(img, side=0):
                     bbox_list = bbox_label
                     pixel_label = pixel_label*255
                     pixel_label = cv2.resize(pixel_label, re_size, interpolation=cv2.INTER_NEAREST)
-
+                    if DILATE == 1:
+                        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (13,13))  ## RECT  ELLIPSE  CROSS
+                        # pixel_label = cv2.morphologyEx(pixel_label, cv2.MORPH_CLOSE, kernel)
+                        pixel_label = cv2.dilate(pixel_label, kernel, iterations=2)
                     alpha = 0.5
                     new_img = cv2.addWeighted(new_img, alpha, pixel_label, 1-alpha, 0)
     else:
@@ -395,10 +428,10 @@ def insert_to_df():
                 bbox_list.pop(0)
         json_loc = json.dumps(bbox_list)
         df.iloc[IDX, 1] = json_loc
-            # new_row = {'path': [df.iloc[IDX, 0]], 'label': [json_loc]}
-            # df2 = pd.DataFrame(new_row)
-            # df1 = pd.concat([df1,df2], ignore_index=True)
-            # df1.reset_index()
+        # new_row = {'path': [df.iloc[IDX, 0]], 'label': [json_loc]}
+        # df2 = pd.DataFrame(new_row)
+        # df1 = pd.concat([df1,df2], ignore_index=True)
+        # df1.reset_index()
     ERROR = 0
 
 def read_data(n):
@@ -538,6 +571,27 @@ def show_mouse(e):
         bboxId = RIGHT_IMG.create_rectangle(STATE['x'], STATE['y'], e.x, e.y,
                                             width=1, outline=COLORS[len(bbox_list)%len(COLORS)])
 
+def check_box():
+    global DOT, PIXEL, BBOX, RAW, DILATE
+    b0 = dot_val.get()
+    b1 = pixel_val.get()
+    b2 = bbox_val.get()
+    b3 = raw_val.get()
+    b4 = dilate_val.get()
+    if b0 == 1:  DOT = 1
+    elif b0 == 0: DOT = 0
+    if b1 == 1:  PIXEL = 1
+    elif b1 == 0: PIXEL = 0
+    if b2 == 1:  BBOX = 1
+    elif b2 == 0: BBOX = 0
+    if b3 == 1:  RAW = 1
+    elif b3 == 0: RAW = 0
+    if b4 == 1:  DILATE = 1
+    elif b4 == 0: DILATE = 0
+    print([b0, b1, b2, b3])
+
+
+
 def save_img():
     cv2.imwrite(f'./{data}_{IDX}.png', image2)
     messagebox.showinfo("Information", "img saved succesfully")
@@ -572,31 +626,18 @@ def close(e):
 ## -------------------------------------------------------------------------------- IMAGE SHIFT
 
 '''
-up: X1 +
-down: X2 -
-left: Y1 +
-right: Y2 -
-
-u1: X1 -
-d1: X2 +
-l1: Y1 -
-r1: Y2 +
+up: X1 +    down: X2 -    left: Y1 +    right: Y2 -    u1: X1 -    d1: X2 +    l1: Y1 -    r1: Y2 +
 '''
-
 def shift_image():
     global cropped_image1, resized_image1
     # img = cv2.imread(rgb, 1)[:, :, ::-1]
     img = image1
-
     print(f'X1: {X1},  X2: {X2},  Y1: {Y1},  Y2: {Y2}')
     print(f'X1, X2, Y1, Y2 = {X1}, {X2}, {Y1}, {Y2}')
-
     img = img[X1:X2, Y1:Y2]
-
     resized_image = cv2.resize(img, (960, 960), interpolation=cv2.INTER_NEAREST)
     resized_image1 = resized_image.copy()
     cropped_image1 = img.copy()
-
     draw_txt(img, len(bbox_list), -1)
     # draw_txt(cropped_image1, len(bbox_list), -1)
 
@@ -655,15 +696,6 @@ def right1(e):
     print(f"Y2 +")
     if Y2 > s2_mx: Y2 = s2_mx
     shift_image()
-
-# def get_x_and_y(e):
-#     global lasx, lasy
-#     lasx, lasy = e.x, e.y
-#
-# def draw_smth(e):
-#     global lasx, lasy
-#     RIGHT_IMG.create_line((lasx, lasy, e.x, e.y), fill='red', width=1)
-#     lasx, lasy = e.x, e.y
 
 ## -------------------------------------------------------------------------------- WINDOW
 # class ResizingCanvas(Canvas):
@@ -727,6 +759,10 @@ image2_text.set('')
 label1 = Label(root, textvariable=image2_text, fg=fg_color, bg=bg_color)
 label1.grid(row=0, column=1)
 
+## ---------------------------------------------------------------- 0,2
+
+
+
 ## ---------------------------------------------------------------- 1,0
 LEFT_IMG = Label(root, bg=bg_color)
 LEFT_IMG.grid(row=1, column=0)
@@ -740,14 +776,48 @@ index_frame = Frame(root, width=0, height=0, bg=bg_color)
 index_frame.grid(row=2, column=0)
 
 index_label = Label(index_frame, text='DATA INDEX :', fg=fg_color, bg=bg_color)
-index_label.grid(row=0, column=0, padx=8)
+index_label.grid(row=0, column=0, padx=8, pady=8)
 
 index = Entry(index_frame, width=10, justify='center', borderwidth=3, bg='yellow')
 index.grid(row=0, column=1, padx=8)
 
 ## ---------------------------------------------------------------- 2,1
+check_frame = Frame(root, width=0, height=0, bg=bg_color)
+check_frame.grid(row=2, column=1, pady=8)
+
+dot_val = IntVar(value=1)
+dot_button = Checkbutton(check_frame, text="DOT", variable=dot_val, command=check_box, onvalue=1, offvalue=0, height=1, width=4)
+dot_button.grid(row=0, column=0, padx=4)
+
+pixel_val = IntVar(value=1)
+pixel_button = Checkbutton(check_frame, text="PIXEL", variable=pixel_val, command=check_box, onvalue=1, offvalue=0, height=1, width=4)
+pixel_button.grid(row=0, column=1, padx=4)
+
+bbox_val = IntVar(value=1)
+bbox_button = Checkbutton(check_frame, text="BBOX", variable=bbox_val, command=check_box, onvalue=1, offvalue=0, height=1, width=4)
+bbox_button.grid(row=0, column=2, padx=4)
+
+raw_val = IntVar(value=1)
+raw_button = Checkbutton(check_frame, text="RAW", variable=raw_val, command=check_box, onvalue=1, offvalue=0, height=1, width=4)
+raw_button.grid(row=0, column=3, padx=4)
+
+dilate_val = IntVar(value=1)
+dilate_button = Checkbutton(check_frame, text="DILATE", variable=dilate_val, command=check_box, onvalue=1, offvalue=0, height=1, width=4)
+dilate_button.grid(row=0, column=4, padx=4)
+
+## ---------------------------------------------------------------- 3.0
+data_path_frame = Frame(root, width=0, height=0, bg=bg_color)
+data_path_frame.grid(row=3, column=0, pady=8)
+
+data_0 = Label(data_path_frame, text='DATA PATH :', fg=fg_color, bg=bg_color)
+data_0.grid(row=0, column=0, padx=8)
+
+data_path = Entry(data_path_frame, width=64, justify='center', borderwidth=3, bg='white')
+data_path.grid(row=0, column=1, padx=8)
+
+## ---------------------------------------------------------------- 3,1
 select_frame = Frame(root, width=0, height=0, pady=16, bg=bg_color)
-select_frame.grid(row=2, column=1)
+select_frame.grid(row=3, column=1, pady=8)
 
 select_directory_button = Button(select_frame, text="select DIRECTORY", command=select_directoru)
 select_directory_button.grid(row=0, column=0, padx=8)
@@ -761,26 +831,6 @@ labels = ["pixel", "bbox", "count", ]
 select_label_drop = OptionMenu(select_frame, selected_label, *labels, command=select_label)
 select_label_drop.grid(row=0, column=2, padx=8)
 
-## ---------------------------------------------------------------- 3.0
-data_path_frame = Frame(root, width=0, height=0, bg=bg_color)
-data_path_frame.grid(row=3, column=0)
-
-data_0 = Label(data_path_frame, text='DATA PATH :', fg=fg_color, bg=bg_color)
-data_0.grid(row=0, column=0, padx=8)
-
-data_path = Entry(data_path_frame, width=64, justify='center', borderwidth=3, bg='white')
-data_path.grid(row=0, column=1, padx=8)
-
-## ---------------------------------------------------------------- 3,1
-save_frame = Frame(root, width=0, height=0, pady=16, bg=bg_color)
-save_frame.grid(row=3, column=1)
-
-save_img = Button(save_frame, text="save_img", bg='green', fg='purple', padx=10, pady=10, command=save_img)
-save_img.grid(row=0, column=1, padx=8)
-
-save = Button(save_frame, text="save_CSV", bg='red', fg='blue', padx=10, pady=10, command=save)
-save.grid(row=0, column=2, padx=8)
-
 ## ---------------------------------------------------------------- 4,0
 key_guide_string = "LEFT ARROW: previous\n" \
                    "RIGHT ARROW: next\n" \
@@ -792,6 +842,16 @@ key_guide_text = StringVar()
 key_guide_text.set(key_guide_string)
 key_guide = Label(root, textvariable=key_guide_text, fg=fg_color, bg=bg_color)
 key_guide.grid(row=4, column=0)
+
+## ---------------------------------------------------------------- 4,1
+save_frame = Frame(root, width=0, height=0, pady=16, bg=bg_color)
+save_frame.grid(row=4, column=1)
+
+save_img = Button(save_frame, text="save_img", bg='green', fg='purple', padx=10, pady=10, command=save_img)
+save_img.grid(row=0, column=1, padx=8)
+
+save = Button(save_frame, text="save_CSV", bg='red', fg='blue', padx=10, pady=10, command=save)
+save.grid(row=0, column=2, padx=8)
 
 ## -------------------------------------------------------------------------------- BIND
 root.bind('<Return>', move)
