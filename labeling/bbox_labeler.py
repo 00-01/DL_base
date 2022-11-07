@@ -136,40 +136,52 @@ def list_sort(arr):
                     sorted_list.append(j)
     return sorted_list
 
+def fill_arr(li):
+    flag = 0
+    ax0, ax1 = np.shape(li)  ## ax0: 10   ax1: 5
+    mn, mx = [-1]*ax1, [-1]*ax1  ## axis 1
+    for in0 in range(ax1):
+        for in1 in range(ax0):
+            if li[in1][in0] == 1:
+                if flag == 1:
+                    mx[in0] = in1
+                elif flag == 0:
+                    mn[in0] = in1
+                    flag = 1
+        # print(mn, mx)
+        for i in range(mn[in0], mx[in0]+1):
+            if i > 0:
+                li[i][in0] = 1
+        flag = 0
+
+    mn, mx = [-1]*ax0, [-1]*ax0  ## axis 0
+    for in1 in range(ax0):
+        for in0 in range(ax1):
+            # print(in1, in0)
+            if li[in1][in0] == 1:
+                if flag == 1:
+                    mx[in1] = in0
+                elif flag == 0:
+                    mn[in1] = in0
+                    flag = 1
+        # print(mn, mx)
+        for i in range(mn[in1], mx[in1]+1):
+            if i > 0:
+                li[in1][i] = 1
+        flag = 0
+    return li
+
 
 def pixel_label_mkr(img, bbox_label, thresh, cls):
-    # bbox_label1 = real_list(bbox_label)
     sorted_list = list_sort(bbox_label)
     pixel_label = np.zeros((w, h), dtype=np.uint8)
     for i in sorted_list:
-        pixel_label[i[1]:i[3], i[0]:i[2]] = (img[i[1]:i[3], i[0]:i[2]] > thresh)*cls
-        # print(f"start:{chr(10)}")
-        # flg0, flg1 = 0, 0
-        # flg0_li, flg1_li = [], []
-        # dilated_label = pixel_label
-        filled_label = np.zeros((i[3]-i[1], i[2]-i[0]), dtype=np.uint8)
-        for idx0, val0 in enumerate(pixel_label[i[1]:i[3], i[0]:i[2]]):
-            # print(f"val: {val0}")
-            # if 1 in val0:
-            #     # print(f"{idx0}, {val0}")
-            for idx1, val1 in enumerate(val0):
-                filled_label[idx0, idx1] = val1
-        for l in filled_label:
-            pass
+        # pixel_label[i[1]:i[3], i[0]:i[2]] = (img[i[1]:i[3], i[0]:i[2]] > thresh)*cls
+        raw_arr = (img[i[1]:i[3], i[0]:i[2]] > thresh)*cls
+        li = fill_arr(raw_arr)
+        pixel_label[i[1]:i[3], i[0]:i[2]] = li
 
 
-        pixel_label[i[1]:i[3], i[0]:i[2]] = filled_label
-
-        # print(f"filled:{filled_label}")
-                # print(idx0, idx1)
-                    # if flg0 == 1:
-            #         if val1 == 1:
-            #             flg0_li.append([idx0,idx1])
-            #             flg0 = 1
-                    # print(f"{idx1}, {val1}")
-        # print(f"start:{chr(10)}")
-            # if pix == 1:
-            # if pixel_label[i[1]]
     if SAVE_PIXEL_LABEL == 1:
         save_img_path = f"../{save_dir}/PIXEL_LABEL/{df.iloc[IDX,0]}.png"
         cv2.imwrite(save_img_path, pixel_label)
@@ -589,8 +601,7 @@ def check_box():
     if b4 == 1:  DILATE = 1
     elif b4 == 0: DILATE = 0
     print([b0, b1, b2, b3])
-
-
+    change(0)
 
 def save_img():
     cv2.imwrite(f'./{data}_{IDX}.png', image2)
