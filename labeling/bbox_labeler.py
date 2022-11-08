@@ -18,7 +18,7 @@ from PIL import Image, ImageTk
 
 
 DEBUG = 1
-AUTO_RUN = 0
+AUTO_RUN = 1
 BG = 2
 SAVE_IMG = 0
 SAVE_PIXEL_LABEL = 1
@@ -136,6 +136,7 @@ def list_sort(arr):
                     sorted_list.append(j)
     return sorted_list
 
+
 def fill_arr(li):
     flag = 0
     ax0, ax1 = np.shape(li)  ## ax0: 10   ax1: 5
@@ -181,10 +182,11 @@ def pixel_label_mkr(img, bbox_label, thresh, cls):
         li = fill_arr(raw_arr)
         pixel_label[i[1]:i[3], i[0]:i[2]] = li
 
-
     if SAVE_PIXEL_LABEL == 1:
-        save_img_path = f"../{save_dir}/PIXEL_LABEL/{df.iloc[IDX,0]}.png"
-        cv2.imwrite(save_img_path, pixel_label)
+        save_path = f"../{save_dir}/PIXEL_LABEL"
+        img_name = f"{df.iloc[IDX,0]}.png"
+        if not os.path.exists(save_path):  os.makedirs(save_path)
+        cv2.imwrite(f"{save_path}/{img_name}", pixel_label)
     return pixel_label, bbox_label
 
 ## -------------------------------------------------------------------------------- IMAGE FUNCTION
@@ -388,9 +390,9 @@ def draw_rec(img, side=0):
                     pixel_label = pixel_label*255
                     pixel_label = cv2.resize(pixel_label, re_size, interpolation=cv2.INTER_NEAREST)
                     if DILATE == 1:
-                        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (13,13))  ## RECT  ELLIPSE  CROSS
+                        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3,3))  ## RECT  ELLIPSE  CROSS
                         # pixel_label = cv2.morphologyEx(pixel_label, cv2.MORPH_CLOSE, kernel)
-                        pixel_label = cv2.dilate(pixel_label, kernel, iterations=2)
+                        pixel_label = cv2.dilate(pixel_label, kernel, iterations=1)
                     alpha = 0.5
                     new_img = cv2.addWeighted(new_img, alpha, pixel_label, 1-alpha, 0)
     else:
