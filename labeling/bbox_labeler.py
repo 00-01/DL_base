@@ -18,10 +18,10 @@ from PIL import Image, ImageTk
 
 
 DEBUG = 1
-AUTO_RUN = 1
+AUTO_RUN = 0
 BG = 2
 SAVE_IMG = 0
-SAVE_PIXEL_LABEL = 1
+SAVE_PIXEL_LABEL = 0
 # DRAW_CNT = 1
 MAKE_DENOISE_LABEL = 1
 CONVERT_BBOX = 1
@@ -73,8 +73,9 @@ data_dir = f"/media/z/0/MVPC10/DATA/v1.1/RAW/03"
 ## -------------------------------------------------------------------------------- DOT
 DOT = 0
 PIXEL = 1
-DILATE = 1
 BBOX = 1
+BG_RM = 1
+DILATE = 0
 
 # dot_csv = f"../dot2.csv"
 # dot_df = pd.read_csv(dot_csv)
@@ -100,6 +101,7 @@ print(dot_list)
 
 ## -------------------------------------------------------------------------------- PIXEL LABEL
 pixel_thresh = 15
+INSTANCE_SEG = 1
 
 
 def real_list(li):
@@ -170,24 +172,42 @@ def fill_arr(li):
             if i > 0:
                 li[in1][i] = 1
         flag = 0
+
+    mn, mx = [-1]*ax1, [-1]*ax1  ## axis 1
+    for in0 in range(ax1):
+        for in1 in range(ax0):
+            if li[in1][in0] == 1:
+                if flag == 1:
+                    mx[in0] = in1
+                elif flag == 0:
+                    mn[in0] = in1
+                    flag = 1
+        # print(mn, mx)
+        for i in range(mn[in0], mx[in0]+1):
+            if i > 0:
+                li[i][in0] = 1
+        flag = 0
+
     return li
 
 
-def pixel_label_mkr(img, bbox_label, thresh, cls):
+def pixel_label_mkr(img, bbox_label, thresh, cls, instance_seg):
+    cls_cnt = 0
     sorted_list = list_sort(bbox_label)
     pixel_label = np.zeros((w, h), dtype=np.uint8)
     for i in sorted_list:
         # pixel_label[i[1]:i[3], i[0]:i[2]] = (img[i[1]:i[3], i[0]:i[2]] > thresh)*cls
-        raw_arr = (img[i[1]:i[3], i[0]:i[2]] > thresh)*cls
+        raw_arr = (img[i[1]:i[3], i[0]:i[2]] > thresh)*(cls + (cls_cnt*instance_seg))
         li = fill_arr(raw_arr)
         pixel_label[i[1]:i[3], i[0]:i[2]] = li
+        cls_cnt += 1
 
     if SAVE_PIXEL_LABEL == 1:
         save_path = f"../{save_dir}/PIXEL_LABEL"
         img_name = f"{df.iloc[IDX,0]}.png"
         if not os.path.exists(save_path):  os.makedirs(save_path)
         cv2.imwrite(f"{save_path}/{img_name}", pixel_label)
-    return pixel_label, bbox_label
+    return pixel_label
 
 ## -------------------------------------------------------------------------------- IMAGE FUNCTION
 def convert_to_format():
@@ -286,9 +306,10 @@ def open_new_img():
     image2 = cv2.imread(ir, 0)
 
     try:
-        num, bg = bg_mkr(image2)
-        if BG == 1:  image1 = bg
-        elif BG == 2:  image2 = bg
+        if BG_RM == 1:
+            num, bg = bg_mkr(image2)
+            if BG == 1:  image1 = bg
+            elif BG == 2:  image2 = bg
         if SAVE_IMG == 1:
             base_name = os.path.basename(ir)
             save_img_path = f"{save_dir}/{base_name}"
@@ -297,8 +318,6 @@ def open_new_img():
         # crop_image(image2, 3.2, 7.6, 8, side=1)
         resize_image(image1, side=-1)
         resize_image(image2, side=1)
-
-        return num
 
     except TypeError as TE:
         print(TE)
@@ -377,22 +396,22 @@ def draw_rec(img, side=0):
         if bbox_list[0] == -1 or bbox_list[0] == 0 or bbox_list[0] == [0, 0, 0, 0]:
             pass
         else:
-            if LABEL_TYPE == "pixel" or PIXEL == 1:
-                pixel_label, bbox_label = pixel_label_mkr(image2, bbox_list, pixel_thresh, 1)
-                for l in bbox_label:
+            if BBOX == 1:
+                for l in bbox_list:
                     try:
                         new_img = cv2.rectangle(new_img, (l[0]*SIZE, l[1]*SIZE), (l[2]*SIZE, l[3]*SIZE), color=(255, 0, 0), thickness=1, lineType=1)
                     except Exception as E:
                         print(f'[!!!] {E}{chr(10)}{traceback.format_exc()}')
                         pass
+            if PIXEL == 1:
                 if side > 0:
-                    bbox_list = bbox_label
+                    pixel_label = pixel_label_mkr(image2, bbox_list, pixel_thresh, 1, INSTANCE_SEG)
                     pixel_label = pixel_label*255
                     pixel_label = cv2.resize(pixel_label, re_size, interpolation=cv2.INTER_NEAREST)
                     if DILATE == 1:
                         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3,3))  ## RECT  ELLIPSE  CROSS
                         # pixel_label = cv2.morphologyEx(pixel_label, cv2.MORPH_CLOSE, kernel)
-                        pixel_label = cv2.dilate(pixel_label, kernel, iterations=1)
+                        pixel_label = cv2.dilate(pixel_label, kernel, iterations=2)
                     alpha = 0.5
                     new_img = cv2.addWeighted(new_img, alpha, pixel_label, 1-alpha, 0)
     else:
@@ -586,11 +605,11 @@ def show_mouse(e):
                                             width=1, outline=COLORS[len(bbox_list)%len(COLORS)])
 
 def check_box():
-    global DOT, PIXEL, BBOX, RAW, DILATE
+    global DOT, PIXEL, BBOX, BG_RM, DILATE
     b0 = dot_val.get()
     b1 = pixel_val.get()
     b2 = bbox_val.get()
-    b3 = raw_val.get()
+    b3 = bg_val.get()
     b4 = dilate_val.get()
     if b0 == 1:  DOT = 1
     elif b0 == 0: DOT = 0
@@ -598,8 +617,8 @@ def check_box():
     elif b1 == 0: PIXEL = 0
     if b2 == 1:  BBOX = 1
     elif b2 == 0: BBOX = 0
-    if b3 == 1:  RAW = 1
-    elif b3 == 0: RAW = 0
+    if b3 == 1:  BG_RM = 1
+    elif b3 == 0: BG_RM = 0
     if b4 == 1:  DILATE = 1
     elif b4 == 0: DILATE = 0
     print([b0, b1, b2, b3])
@@ -810,8 +829,8 @@ bbox_val = IntVar(value=1)
 bbox_button = Checkbutton(check_frame, text="BBOX", variable=bbox_val, command=check_box, onvalue=1, offvalue=0, height=1, width=4)
 bbox_button.grid(row=0, column=2, padx=4)
 
-raw_val = IntVar(value=1)
-raw_button = Checkbutton(check_frame, text="RAW", variable=raw_val, command=check_box, onvalue=1, offvalue=0, height=1, width=4)
+bg_val = IntVar(value=1)
+raw_button = Checkbutton(check_frame, text="BG", variable=bg_val, command=check_box, onvalue=1, offvalue=0, height=1, width=4)
 raw_button.grid(row=0, column=3, padx=4)
 
 dilate_val = IntVar(value=1)

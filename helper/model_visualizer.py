@@ -4,8 +4,8 @@ import numpy as np
 import visualkeras
 
 
-def visual_keras(model, MODEL_VERSION):
-    plot_model_path = f"OUT/{MODEL_VERSION}/plot/{MODEL_VERSION}_modelplot.png"
+def visual_keras(model, TIME):
+    plot_model_path = f"OUT/{MODEL_VERSION}/plot/{TIME}.png"
     # color_map = defaultdict(dict)
     # color_map[Conv2D]['fill'] = 'orange'
     # color_map[ZeroPadding2D]['fill'] = 'gray'
