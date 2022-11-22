@@ -113,4 +113,3 @@ if __name__ == "__main__":
     # model_save_name = f"../OUT/v2.1/model/20221115-151918_mobileNet_ckpt.h5"
 
     save_to_tflite(model, model_save_name)
-

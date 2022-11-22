@@ -1,5 +1,6 @@
 # pyinstaller -F -w bbox_labeler.py
 # pyinstaller --onefile -w bbox_labeler.py
+
 # import binascii
 import ast
 import csv
