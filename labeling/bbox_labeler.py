@@ -46,6 +46,11 @@ cnt_thresh = 1
 j = 0
 new_label = 0
 
+'''
+raw = []
+zero = [0,0,0,0]
+error = [0] / [-1]
+'''
 BG_LIST = []
 BG_LENGTH = 40
 

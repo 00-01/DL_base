@@ -81,42 +81,17 @@ def con(name, input, filter=64, size=3, stride=1, padding='valid', activation='e
     return x
 
 
-# def mobile_block(name, input, add=1, filter0=32, size0=3, stride0=1, padding0='same', activation='elu', dropout=0.25, skip=0, filter1=32, size1=1, stride1=1, padding1='valid'):
-#     if skip == 1:
-#         input = Conv2D(filter1, size1, strides=stride1, padding=padding1, activation=activation, name=f"{name}_K_C")(input)
-#
-#     x = Conv2D(filter0, size0, strides=stride0, padding=padding0, activation=activation, name=f"{name}_C0")(input)
-#     x = DepthwiseConv2D(filter0, padding=padding0, activation=activation, name=f"{name}_DC0")(x)
-#     x = Conv2D(filter1, size1, strides=stride1, padding=padding1, activation=activation, name=f"{name}_C1")(x)
-#     # x = BatchNormalization(name=f"{name}_BN0")(x)
-#     # x = Activation(activation, name=f"{name}_ACT0")(x)
-#     x = Dropout(dropout, name=f"{name}_DO0")(x)
-#
-#     if add == 1:
-#         x = Add(name=f"{name}_ADD")([input, x])
-#
-#     return x
-
-
-#     32 3
-# D   32 32
-#     24 1
-#
-#     144 1
-# D   144 144
-# C   32 1
-#
-#     192 1
-# D   192 192
-# C   32  1
-#
-#     192 1
-# D   192 192
-# C   32  1
-
-
-# def mobilenet_ssd():
-#     return x
+def bottleneck(name, input, filter=32, size0=3, size1=3, stride=1, padding='same', activation='elu', dropout=0.25):
+    skip = Conv2D(filter, size0, strides=stride, padding=padding, activation=activation, name=f"{name}_SKIP")(input)
+    if padding == 'valid':
+        input = Conv2D(filter, size0, strides=stride, padding=padding, activation=activation, name=f"{name}_C0")(input)
+        stride = 1
+    x = Conv2D(filter*2, 1, strides=stride, padding='same', activation=activation, name=f"{name}_C")(input)
+    x = DepthwiseConv2D(size1, padding='same', activation=activation, name=f"{name}_DW_C")(x)
+    x = Conv2D(filter, 1, 1, padding='same', name=f"{name}_PW_C")(x)
+    x = Dropout(dropout, name=f"{name}_DO0")(x)
+    a = Add(name=f"{name}_ADD")([skip, x])
+    return a
 
 
 def unet(IN_SHAPE, pretrained_weights=None):
@@ -244,24 +219,5 @@ def res_unet(filter_root, depth, n_class=2, input_size=(80, 80, 1), activation='
     output = Conv(n_class, 1, padding='same', activation=final_activation, name='output')(x)
 
     return Model(inputs, output, name='Res-UNet')
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 

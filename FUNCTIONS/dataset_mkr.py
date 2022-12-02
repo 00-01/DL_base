@@ -82,4 +82,3 @@ def df_to_tensor(df, path):
         if i%10000 == 0:  print(i)
 
     return data, label
-
