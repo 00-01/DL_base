@@ -70,3 +70,5 @@ def filter_visualizer(model, img):
                 plt.imshow(c_img[:, :, i-1], cmap='gray')
                 # pos += 1
             plt.show()
+
+
