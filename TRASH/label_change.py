@@ -70,11 +70,6 @@ def dot_mkr(h, w, x, y):
 dot_list = dot_mkr(h, w, 4, 4)
 print(dot_list)
 
-# with open('dot_44.csv', 'w') as f:
-#     write = csv.writer(f)
-#     write.writerow(['x', 'y'])
-#     write.writerows(dot_list)
-
 ## -------------------------------------------------------------------------------- PIXEL LABEL
 pixel_thresh = 24
 
