@@ -147,17 +147,17 @@ def unet(IN_SHAPE, pretrained_weights=None):
 
 def res_unet(filter_root, depth, n_class=2, input_size=(80, 80, 1), activation='elu', batch_norm=True, final_activation='softmax'):
     """
-    Build UNet model with ResBlock.
+    Build UNet MODEL with ResBlock.
     Args:
         filter_root (int): Number of filters to start with in first convolution.
-        depth (int): How deep to go in UNet i.e. how many down and up sampling you want to do in the model. Filter root and image size should be multiple of 2^depth.
+        depth (int): How deep to go in UNet i.e. how many down and up sampling you want to do in the MODEL. Filter root and image size should be multiple of 2^depth.
         n_class (int, optional): How many classes in the output layer. Defaults to 2.
         input_size (tuple, optional): Input image size. Defaults to (80, 80, 1).
         activation (str, optional): activation to use in each convolution. Defaults to 'relu'.
         batch_norm (bool, optional): To use Batch normaliztion or not. Defaults to True.
         final_activation (str, optional): activation for output layer. Defaults to 'softmax'.
     Returns:
-        obj: keras model object
+        obj: keras MODEL object
     """
     if len(input_size) == 3:
         Conv, MaxPooling, UpSampling = Conv2D, MaxPooling2D, UpSampling2D

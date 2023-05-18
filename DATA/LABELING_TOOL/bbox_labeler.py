@@ -74,7 +74,7 @@ df = pd.DataFrame()
 df1 = pd.DataFrame()
 save_dir = f"OUT"
 save_csv_path = f"{save_dir}/output.csv"
-data_dir = f"/media/z/0/MVPC10/DATA/v1.1/RAW/03"
+data_dir = f"/media/z/0/MVPC10/01_DATA/v1.1/RAW/03"
 
 ## -------------------------------------------------------------------------------- DOT
 DOT = 0
@@ -110,17 +110,17 @@ pixel_thresh = 15
 INSTANCE_SEG = 1
 
 
-def real_list(li):
-    C = [[16, 16, 17, 17, 18, 19, 19, 20, 20, 21, 22, 22, 23, 23, 24, 25, 25, 26, 26, 27, 28, 28, 29, 29, 30, 31, 31, 32, 32, 33, 34, 34, 35, 35, 36, 37, 37, 38, 38, 39, 40, 40, 41, 41, 42, 43, 43, 44, 44, 45, 46, 46, 47, 47, 48, 49, 49, 50, 50, 51, 52, 52, 53, 53, 54, 55, 55, 56, 56, 57, 58, 58, 59, 59, 60, 61, 61, 62, 62, 63, 64,],
-         [19, 19, 20, 21, 21, 22, 23, 24, 25, 25, 26, 27, 28, 29, 29, 30, 31, 32, 33, 33, 34, 34, 35, 36, 36, 37, 38, 39, 40, 40, 41, 42, 43, 44, 44, 45, 46, 47, 48, 48, 49, 49, 50, 51, 51, 52, 53, 54, 55, 55, 56, 57, 58, 59, 59, 60, 61, 62, 63, 63, 64, 64, 65, 66, 66, 67, 68, 69, 70, 70, 71, 72, 73, 74, 74, 75, 76, 77, 78, 78, 79,]]
-    real_list = []
-    for i in li:
-        x1 = C[0][i[0]]
-        y1 = C[1][i[1]]
-        x2 = C[0][i[2]]
-        y2 = C[1][i[3]]
-        real_list.append([x1, y1, x2, y2])
-    return real_list
+# def real_list(li):
+#     C = [[16, 16, 17, 17, 18, 19, 19, 20, 20, 21, 22, 22, 23, 23, 24, 25, 25, 26, 26, 27, 28, 28, 29, 29, 30, 31, 31, 32, 32, 33, 34, 34, 35, 35, 36, 37, 37, 38, 38, 39, 40, 40, 41, 41, 42, 43, 43, 44, 44, 45, 46, 46, 47, 47, 48, 49, 49, 50, 50, 51, 52, 52, 53, 53, 54, 55, 55, 56, 56, 57, 58, 58, 59, 59, 60, 61, 61, 62, 62, 63, 64,],
+#          [19, 19, 20, 21, 21, 22, 23, 24, 25, 25, 26, 27, 28, 29, 29, 30, 31, 32, 33, 33, 34, 34, 35, 36, 36, 37, 38, 39, 40, 40, 41, 42, 43, 44, 44, 45, 46, 47, 48, 48, 49, 49, 50, 51, 51, 52, 53, 54, 55, 55, 56, 57, 58, 59, 59, 60, 61, 62, 63, 63, 64, 64, 65, 66, 66, 67, 68, 69, 70, 70, 71, 72, 73, 74, 74, 75, 76, 77, 78, 78, 79,]]
+#     real_list = []
+#     for i in li:
+#         x1 = C[0][i[0]]
+#         y1 = C[1][i[1]]
+#         x2 = C[0][i[2]]
+#         y2 = C[1][i[3]]
+#         real_list.append([x1, y1, x2, y2])
+#     return real_list
 
 
 def list_sort(arr):
@@ -813,7 +813,7 @@ RIGHT_IMG.grid(row=1, column=1)
 index_frame = Frame(root, width=0, height=0, bg=bg_color)
 index_frame.grid(row=2, column=0)
 
-index_label = Label(index_frame, text='DATA INDEX :', fg=fg_color, bg=bg_color)
+index_label = Label(index_frame, text='01_DATA INDEX :', fg=fg_color, bg=bg_color)
 index_label.grid(row=0, column=0, padx=8, pady=8)
 
 index = Entry(index_frame, width=10, justify='center', borderwidth=3, bg='yellow')
@@ -847,7 +847,7 @@ dilate_button.grid(row=0, column=4, padx=4)
 data_path_frame = Frame(root, width=0, height=0, bg=bg_color)
 data_path_frame.grid(row=3, column=0, pady=8)
 
-data_0 = Label(data_path_frame, text='DATA PATH :', fg=fg_color, bg=bg_color)
+data_0 = Label(data_path_frame, text='01_DATA PATH :', fg=fg_color, bg=bg_color)
 data_0.grid(row=0, column=0, padx=8)
 
 data_path = Entry(data_path_frame, width=64, justify='center', borderwidth=3, bg='white')

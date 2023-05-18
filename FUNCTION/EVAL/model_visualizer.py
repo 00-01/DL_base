@@ -49,7 +49,7 @@ def weight_visualizer(model, n1, n2):
 def filter_visualizer(model, img):
     conv_layers = model.layers[1].output
     print(conv_layers)
-    # conv_layers = [i.output for i in model.layers if "C2" in i.name][:1]
+    # conv_layers = [i.output for i in MODEL.layers if "C2" in i.name][:1]
     # print(conv_layers)
     visualize_model = Model(model.inputs, conv_layers)
     print(visualize_model.summary())
@@ -57,8 +57,8 @@ def filter_visualizer(model, img):
     for i in range(20, 100, 10):
         re_img = img.reshape(1, img.shape[0], img.shape[1], img.shape[2])
         conv_img = visualize_model.predict(re_img)
-        # columns = int(round(np.sqrt(model.shape[1])))
-        # rows = int(round(np.sqrt(model.shape[2])))
+        # columns = int(round(np.sqrt(MODEL.shape[1])))
+        # rows = int(round(np.sqrt(MODEL.shape[2])))
         columns = 8
         rows = 8
         for c_img in conv_img:

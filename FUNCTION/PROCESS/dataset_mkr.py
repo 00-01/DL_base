@@ -15,7 +15,7 @@ def v2_1_data_mkr(df, z_value):
         if lbl == 1:
             if 0 not in bbox:
                 if [0, 0, 0, 0] in bbox:
-                    ## REMOVE DATA IMBALANCE
+                    ## REMOVE 01_DATA IMBALANCE
                     cnt0 += 1
                     if cnt0%z_value == 0:
                         label.append(0)

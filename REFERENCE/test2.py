@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 #
 #
-# ir_path = f'/media/z/0/MVPC10/CODE/DL_base/SAMPLE/data/1651310296797.png'
+# ir_path = f'/media/z/0/MVPC10/CODE/DL_base/9_REFERENCE/data/1651310296797.png'
 # img = cv2.imread(ir_path, 0)
 #
 # arr = [[1, 69, 16, 79], [58, 45, 80, 72], [56, 39, 71, 60], [54, 24, 69, 46],
