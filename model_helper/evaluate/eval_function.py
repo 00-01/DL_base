@@ -1,5 +1,6 @@
 from matplotlib import pyplot as plt
 from numpy import interp
+import numpy as np
 import seaborn as sns
 from sklearn.metrics import *
 from tensorflow.python.ops.confusion_matrix import confusion_matrix

@@ -74,7 +74,7 @@ df = pd.DataFrame()
 df1 = pd.DataFrame()
 save_dir = f"OUT"
 save_csv_path = f"{save_dir}/output.csv"
-data_dir = f"/media/z/0/MVPC10/01_DATA/v1.1/RAW/03"
+data_dir = f"/media/z/0/MVPC10/DATA/v1.1/RAW/03"
 
 ## -------------------------------------------------------------------------------- DOT
 DOT = 0
@@ -813,7 +813,7 @@ RIGHT_IMG.grid(row=1, column=1)
 index_frame = Frame(root, width=0, height=0, bg=bg_color)
 index_frame.grid(row=2, column=0)
 
-index_label = Label(index_frame, text='01_DATA INDEX :', fg=fg_color, bg=bg_color)
+index_label = Label(index_frame, text='DATA INDEX :', fg=fg_color, bg=bg_color)
 index_label.grid(row=0, column=0, padx=8, pady=8)
 
 index = Entry(index_frame, width=10, justify='center', borderwidth=3, bg='yellow')
@@ -847,7 +847,7 @@ dilate_button.grid(row=0, column=4, padx=4)
 data_path_frame = Frame(root, width=0, height=0, bg=bg_color)
 data_path_frame.grid(row=3, column=0, pady=8)
 
-data_0 = Label(data_path_frame, text='01_DATA PATH :', fg=fg_color, bg=bg_color)
+data_0 = Label(data_path_frame, text='DATA PATH :', fg=fg_color, bg=bg_color)
 data_0.grid(row=0, column=0, padx=8)
 
 data_path = Entry(data_path_frame, width=64, justify='center', borderwidth=3, bg='white')

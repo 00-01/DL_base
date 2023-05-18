@@ -1,3 +1,5 @@
+import os
+
 import tensorflow as tf
 
 
@@ -17,8 +19,8 @@ def set_gpu_memory(GPU_SET):
                             [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=4096)])
                 logical_gpus = tf.config.experimental.list_logical_devices('GPU')
                 print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
-            except RuntimeError as e:
-                print(e)
+            except Exception as E:
+                print(E)
 
 
 # export CUDA_VISIBLE_DEVICES = (1,2)

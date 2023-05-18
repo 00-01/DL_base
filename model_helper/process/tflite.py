@@ -110,6 +110,6 @@ if __name__ == "__main__":
 
     model = tf.keras.models.load_model(model_path_last)
     model_save_name = f"{SAVE_PATH}/model/new_model.tflite"
-    # model_save_name = f"../03_OUT/v2.1/MODEL/20221115-151918_mobileNet_ckpt.h5"
+    # model_save_name = f"../OUTPUT/v2.1/MODEL/20221115-151918_mobileNet_ckpt.h5"
 
     save_to_tflite(model, model_save_name)
